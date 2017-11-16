@@ -9,6 +9,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin')
+const workboxPlugin = require('workbox-webpack-plugin')
 
 const env = require('../config/prod.env')
 
@@ -111,8 +112,20 @@ const webpackConfig = merge(baseWebpackConfig, {
         from: path.resolve(__dirname, '../static'),
         to: config.build.assetsSubDirectory,
         ignore: ['.*']
+      },
+      {
+        from: path.resolve(__dirname, '../pwa'),
+        to: config.build.assetsRoot
       }
-    ])
+    ]),
+
+    new workboxPlugin({
+      globDirectory: 'dist',
+      globPatterns: ['**/*.{html,js,css,png,json}'],
+      swDest: path.join('dist', 'sw.js'),
+      clientsClaim: true,
+      skipWaiting: true,
+    })
   ]
 })
 
