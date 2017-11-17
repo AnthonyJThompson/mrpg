@@ -4,7 +4,7 @@
       <!-- monster -->
       <div id="monster">
         <div id="monster-hide-table" v-if="monster.isAlive">
-          <img :src="monster.img" />
+          <img :disabled="!monster.isAlive" @click="attack" :src="monster.img" />
           <small>{{ monster.name }}</small>
         </div>
       </div>
@@ -17,9 +17,8 @@
       </div>
       <!-- controls -->
       <div id="controls">
-        <button :disabled="!monster.isAlive" @click="attack">Attack</button>
         <button @click="restart">Re(Start)</button>
-        <button :disabled="player.gold <= upgradeCost" @click="upgrade"><span>Buy stuff<br />({{ upgradeCost }} gold)</span></button>
+        <button :disabled="player.gold <= upgradeCost" @click="upgrade"><span>Buy stuff({{ upgradeCost }} gold)</span></button>
       </div>
       <!-- stats -->
       <div id="stats">
@@ -85,9 +84,15 @@ export default {
   name: 'Game',
   data () {
     return {
+      autoSave: '',
       monster: monsterStorage.load(),
       player: playerStorage.load()
     }
+  },
+  mounted: function () {
+    window.unload = this.save
+    window.onblur = this.save
+    window.focus = this.load
   },
   computed: {
     upgradeCost: function () {
@@ -101,6 +106,14 @@ export default {
     }
   },
   methods: {
+    save: function () {
+      monsterStorage.save(this.monster)
+      playerStorage.save(this.player)
+    },
+    load: function () {
+      this.monster = monsterStorage.load()
+      this.player = playerStorage.load()
+    },
     attack: function () {
       var p = this.player
       var m = this.monster
@@ -112,8 +125,8 @@ export default {
         p.exp += this.monsterExp
         p.gold += this.monsterGold
       }
-      playerStorage.save(p)
-      monsterStorage.save(m)
+      // playerStorage.save(p)
+      // monsterStorage.save(m)
     },
     restart: function () {
       this.monster.health = this.monster.maxHealth
@@ -164,7 +177,6 @@ export default {
 }
 #controls{
   text-align: center;
-  display: flex;
 }
 #controls button{
   height: 100px;
