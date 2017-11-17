@@ -1,24 +1,27 @@
 <template>
-  <div>
+  <div v-if="loaded">
+    <iframe src="https://www.extra-life.org/index.cfm?fuseaction=widgets.300x250thermo&participantID=295008" width="302" height="252" frameborder="0" scrolling="no"><a href="https://www.extra-life.org/index.cfm?fuseaction=donorDrive.participant&participantID=295008">Make a Donation!</a></iframe>
     <div>
-      <!-- monster -->
-      <div id="monster">
-        <div id="monster-hide-table" v-if="monster.isAlive">
-          <img :disabled="!monster.isAlive" @click="attack" :src="monster.img" />
-          <small>{{ monster.name }}</small>
-        </div>
-      </div>
-      <!-- health -->
-      <div id="health">
-        <small >{{ monster.health }} / {{ monster.maxHealth }}</small>
-        <div id="monster-health">
-          <div :style="{ width: (monster.health / monster.maxHealth) * 100 + '%'}"></div>
+      <div id="monster-list-container">
+        <div v-for="m in monsterList" :key="m.id" :style="{ maxWidth: 100 / monsterList.length + '%' }">
+          <!-- monster -->
+          <div id="monster">
+            <div id="monster-hide-table" v-if="m.isAlive">
+              <img :disabled="!m.isAlive" @click="attack(m)" :src="m.img"/>
+              <small>{{ m.name }}</small>
+            </div>
+          </div>
+          <!-- health -->
+          <div id="health">
+            <div id="monster-health" :style="{ width: 160 / monsterList.length + 'px' }">
+              <div :style="{ width: (m.health / m.maxHealth) * 100 + '%'}"></div>
+            </div>
+          </div>
         </div>
       </div>
       <!-- controls -->
       <div id="controls">
-        <button @click="restart">Re(Start)</button>
-        <button :disabled="player.gold <= upgradeCost" @click="upgrade"><span>Buy stuff({{ upgradeCost }} gold)</span></button>
+        <button :disabled="player.gold < upgradeCost" @click="upgrade"><span>Buy stuff ({{ upgradeCost }} gold)</span></button>
       </div>
       <!-- stats -->
       <div id="stats">
@@ -33,38 +36,9 @@
 </template>
 
 <script>
-var monsterList = [{
-  index: 0,
-  name: 'bear',
-  img: require('../assets/bear.png'),
-  maxHealth: 100,
-  health: 0,
-  isAlive: false
-}, {
-  index: 1,
-  name: 'goblin',
-  img: require('../assets/goblin.png'),
-  maxHealth: 50,
-  health: 0,
-  isAlive: false
-}]
-
 var playerStorage = {
   load: function () {
-    var player
-    try {
-      player = JSON.parse(localStorage.getItem('player'))
-    } catch (err) {
-      player = null
-    }
-    if (!player) {
-      player = {
-        name: 'My dood',
-        attack: 10,
-        exp: 0,
-        gold: 0
-      }
-    }
+    var player = JSON.parse(localStorage.getItem('player'))
     return player
   },
   save: function (player) {
@@ -73,17 +47,16 @@ var playerStorage = {
 }
 
 var monsterStorage = {
+  loadList: function () {
+    var monsterList = JSON.parse(localStorage.getItem('monsterList'))
+    return monsterList
+  },
+  saveList: function (monsterList) {
+    console.log('save list')
+    localStorage.setItem('monsterList', JSON.stringify(monsterList))
+  },
   load: function () {
-    var monster
-    try {
-      monster = JSON.parse(localStorage.getItem('monster'))
-    } catch (err) {
-      monster = null
-    }
-    if (!monster) {
-      monster = monsterList[Math.floor(Math.random(0, 2))]
-      console.log(monster.name)
-    }
+    var monster = JSON.parse(localStorage.getItem('monster'))
     return monster
   },
   save: function (monster) {
@@ -95,64 +68,106 @@ export default {
   name: 'Game',
   data () {
     return {
-      monsterList: monsterList,
+      loaded: false,
+      monsterList: monsterStorage.loadList(),
       monster: monsterStorage.load(),
       player: playerStorage.load()
     }
   },
+  beforeCreate: function () {
+    var version = '1'
+    if (localStorage.getItem('version') != null && localStorage.getItem('version') === version) {
+      return
+    }
+
+    var player = {
+      name: 'My dood',
+      attack: 10,
+      exp: 0,
+      gold: 0
+    }
+    localStorage.setItem('player', JSON.stringify(player))
+    var monsterList = [{
+      id: 1,
+      name: 'bear',
+      img: require('../assets/bear.png'),
+      maxHealth: 100,
+      health: 100,
+      isAlive: true
+    }, {
+      id: 2,
+      name: 'goblin',
+      img: require('../assets/goblin.png'),
+      maxHealth: 50,
+      health: 50,
+      isAlive: true
+    }, {
+      id: 3,
+      name: 'super goblin',
+      img: require('../assets/goblin.png'),
+      maxHealth: 200,
+      health: 200,
+      isAlive: true
+    }, {
+      id: 4,
+      name: 'super bear',
+      img: require('../assets/bear.png'),
+      maxHealth: 500,
+      health: 500,
+      isAlive: true
+    }]
+    localStorage.setItem('monsterList', JSON.stringify(monsterList))
+    var monster = monsterList[Math.floor(Math.random(0, 2) * 2)]
+    localStorage.setItem('monster', JSON.stringify(monster))
+
+    localStorage.setItem('version', version)
+  },
   mounted: function () {
     window.unload = this.save
     window.onblur = this.save
+    window.onbeforeunload = this.save
     window.onfocus = this.load
+    this.loaded = true
   },
   computed: {
     upgradeCost: function () {
-      return Math.round(this.player.attack * 2)
-    },
-    monsterGold: function () {
-      return Math.round(this.monster.maxHealth / 30)
-    },
-    monsterExp: function () {
-      return Math.round(this.monster.maxHealth / 50)
+      return Math.round(this.player.attack * 1.3)
     }
   },
   methods: {
     save: function () {
-      console.log('unloaded or onblur')
+      monsterStorage.saveList(this.monsterList)
       monsterStorage.save(this.monster)
       playerStorage.save(this.player)
     },
     load: function () {
-      console.log('focus')
       this.monster = monsterStorage.load()
       this.player = playerStorage.load()
     },
-    attack: function () {
+    attack: function (m) {
       var p = this.player
-      var m = this.monster
+      // var m = this.monster
       m.health -= p.attack
       if (m.health <= 0) {
         m.health = 0
         m.maxHealth += Math.round(m.maxHealth * 0.1)
         m.isAlive = false
-        p.exp += this.monsterExp
-        p.gold += this.monsterGold
+        p.exp += Math.round(m.maxHealth / 50)
+        p.gold += Math.round(m.maxHealth / 30)
+
+        // this.monster = this.monsterList[Math.floor(Math.random(0, 4) * 4)]
+        console.log(m.name)
+        m.health = m.maxHealth
+        m.isAlive = true
+        playerStorage.save(p)
+        monsterStorage.save(m)
       }
-      // playerStorage.save(p)
-      // monsterStorage.save(m)
-    },
-    restart: function () {
-      this.monster = this.monsterList[Math.floor(Math.random(0, 2) * 2)]
-      console.log(this.monster.name)
-      this.monster.health = this.monster.maxHealth
-      this.monster.isAlive = true
-      playerStorage.save(this.player)
-      monsterStorage.save(this.monster)
+      console.log(this.upgradeCost)
     },
     upgrade: function () {
       if (this.player.gold >= this.upgradeCost) {
         this.player.gold -= this.upgradeCost
-        this.player.attack += 2
+        this.player.attack += Math.round(this.player.attack * 0.2)
         playerStorage.save(this.player)
       }
     }
@@ -166,7 +181,10 @@ export default {
   margin: 0 auto;
   text-align: center;
   max-width: 70%;
-  height: 250px;
+  min-height: 110px;
+}
+#monster-list-container{
+  display:-webkit-box;
 }
 #monster-hide-table{
   height: 100%;
@@ -188,12 +206,11 @@ export default {
   text-align: center;
 }
 #monster-health{
-  border: 5px solid;
-  width: 200px;
+  border: 3px solid;
   margin: 0 auto 10px auto;
 }
 #monster-health div{
-  height: 20px;
+  height: 10px;
   background-color: red;
 }
 #controls{
@@ -203,6 +220,7 @@ export default {
   height: 100px;
   width: 33.3%;
   max-width: 200px;
+  vertical-align: middle;
 }
 #stats{
   text-align: center;
