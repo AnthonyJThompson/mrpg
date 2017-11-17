@@ -33,6 +33,22 @@
 </template>
 
 <script>
+var monsterList = [{
+  index: 0,
+  name: 'bear',
+  img: require('../assets/bear.png'),
+  maxHealth: 100,
+  health: 0,
+  isAlive: false
+}, {
+  index: 1,
+  name: 'goblin',
+  img: require('../assets/goblin.png'),
+  maxHealth: 50,
+  health: 0,
+  isAlive: false
+}]
+
 var playerStorage = {
   load: function () {
     var player
@@ -65,13 +81,8 @@ var monsterStorage = {
       monster = null
     }
     if (!monster) {
-      monster = {
-        name: 'bear',
-        img: require('../assets/bear.png'),
-        maxHealth: 100,
-        health: 0,
-        isAlive: false
-      }
+      monster = monsterList[Math.floor(Math.random(0, 2))]
+      console.log(monster.name)
     }
     return monster
   },
@@ -84,7 +95,7 @@ export default {
   name: 'Game',
   data () {
     return {
-      autoSave: '',
+      monsterList: monsterList,
       monster: monsterStorage.load(),
       player: playerStorage.load()
     }
@@ -92,7 +103,7 @@ export default {
   mounted: function () {
     window.unload = this.save
     window.onblur = this.save
-    window.focus = this.load
+    window.onfocus = this.load
   },
   computed: {
     upgradeCost: function () {
@@ -107,10 +118,12 @@ export default {
   },
   methods: {
     save: function () {
+      console.log('unloaded or onblur')
       monsterStorage.save(this.monster)
       playerStorage.save(this.player)
     },
     load: function () {
+      console.log('focus')
       this.monster = monsterStorage.load()
       this.player = playerStorage.load()
     },
@@ -129,6 +142,8 @@ export default {
       // monsterStorage.save(m)
     },
     restart: function () {
+      this.monster = this.monsterList[Math.floor(Math.random(0, 2) * 2)]
+      console.log(this.monster.name)
       this.monster.health = this.monster.maxHealth
       this.monster.isAlive = true
       playerStorage.save(this.player)
@@ -162,6 +177,12 @@ export default {
   max-width: 90%;
   max-height: 235px;
   object-fit: contain;
+}
+#monster img:hover{
+  filter: drop-shadow(0 0 8px black)
+}
+#monster img:active{
+  max-width: 88%;
 }
 #health{
   text-align: center;
